@@ -2,7 +2,7 @@ import requests
 import random
 import datetime
 import multiprocessing
-import asyncio
+import os
 
 class UA_string:
 
@@ -19,7 +19,7 @@ class UA_string:
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/113.0",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Safari/605.1.15"
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.3 Safari/605.1.15",
         ]
 
 
@@ -36,11 +36,8 @@ class geo_node_proxy_scrapper:
         second  = now.second
 
         self.qty        = qty
-        self.filepath   = f"{year}_{month}_{day}_{hour}_{minute}_{second}_geoNodeProxyIPList.txt"
-    # def register_ip_bunch(self, data):
-    #     self.all_ip.append(data)
-    #     print("hit")
-    #     print(self.all_ip)
+        self.folder     = "./iplist"
+        self.filepath   = f"{self.folder}/{year}_{month}_{day}_{hour}_{minute}_{second}_geoNodeProxyIPList.txt"
 
     # single workload
     def get_data(self, page, return_dict):
@@ -70,20 +67,26 @@ class geo_node_proxy_scrapper:
         manager       = multiprocessing.Manager()
         proxy_list    = manager.dict()
 
-        # Run
+        # Run subprocesses
         for _target in work_load:
             proxy_scrapper = multiprocessing.Process(target = self.get_data, args = (_target, proxy_list))
             jobs.append(proxy_scrapper)
             proxy_scrapper.start()
 
-        # Finish
+        # Finish subproceses
         for process in jobs:
             process.join()
 
-        print(proxy_list.values())
-        
+        # Export extracted IP address to the given file
+        if not os.path.exists(self.folder):
+            os.mkdir(self.folder)
 
+        with open(self.filepath, 'w') as file:
+            for _chunk in proxy_list.values():
+                for _ip in _chunk:
+                    file.write(f"{_ip}\n")
 
+        print(f"IP list exported : {self.filepath}")
 
     
 if __name__ == "__main__":
