@@ -40,36 +40,44 @@ class geo_node_proxy_scrapper:
         self.filepath   = f"{self.folder}/{year}_{month}_{day}_{hour}_{minute}_{second}_geoNodeProxyIPList.txt"
 
     # single workload
-    def get_data(self, page, return_dict):
+    def get_data(self, page, return_dict, proxy_number, run):
         print(f"[INF] Getting page {page}")
-        request_url  = f"https://proxylist.geonode.com/api/proxy-list?limit=100&page={page}&sort_by=lastChecked&sort_type=desc&filterLastChecked=30&filterUpTime=90&speed=fast"
+        request_url  = f"https://proxylist.geonode.com/api/proxy-list?limit=500&page={page}&sort_by=lastChecked&sort_type=desc&filterLastChecked=30&filterUpTime=90&speed=fast"
         headers      = { "User-Agent" : random.choice(UA_string.UA_string_list) }
         response     = requests.get(request_url, headers = headers)
         ip_list = []
 
         if response.status_code == 200:
             proxy_server_list_json = response.json()["data"]
-            for _server in proxy_server_list_json:
-                ip_address = _server["ip"]
-                ip_list.append(ip_address)
-                print(f"[INF] address {ip_address} gathered")
+            if proxy_server_list_json != []:
+                for _server in proxy_server_list_json:
+                    ip_address = _server["ip"]
+                    ip_list.append(ip_address)
+                    proxy_number.value += 1
+                    print(f"[INF] (Gathered : {proxy_number.value}) address {ip_address} gathered")
+            else:
+                print(f"[WRN] (Gathered : {proxy_number.value}) There is no more available proxy server.")
+                run.clear()
+                return
         else:
-            print(f"[WRN] Failed to fetch data page {page}")
+            print(f"[WRN] Failed to fetch data page {page}, status code was {response.status_code}")
 
         return_dict[page] = ip_list
 
     # parallize scrapping by multiprocessing tool
     def get_data_multiprocessing(self):
-        target_page   = int(self.qty / 100)
+        target_page   = int(self.qty / 500)
         work_load     = [x for x in range(1, target_page + 1)]
         jobs          = []
 
         manager       = multiprocessing.Manager()
         proxy_list    = manager.dict()
+        proxy_number  = manager.Value("int", 0)
+        run           = manager.Event()
 
         # Run subprocesses
         for _target in work_load:
-            proxy_scrapper = multiprocessing.Process(target = self.get_data, args = (_target, proxy_list))
+            proxy_scrapper = multiprocessing.Process(target = self.get_data, args = (_target, proxy_list, proxy_number, run))
             jobs.append(proxy_scrapper)
             proxy_scrapper.start()
 
@@ -90,5 +98,5 @@ class geo_node_proxy_scrapper:
 
     
 if __name__ == "__main__":
-    gnproxy = geo_node_proxy_scrapper(200)
+    gnproxy = geo_node_proxy_scrapper(500)
     gnproxy.get_data_multiprocessing()
