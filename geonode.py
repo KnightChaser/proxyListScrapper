@@ -42,7 +42,7 @@ class geo_node_proxy_scrapper:
     # single workload
     def get_data(self, page, return_dict, proxy_number, run):
         print(f"[INF] Getting page {page}")
-        request_url  = f"https://proxylist.geonode.com/api/proxy-list?limit=500&page={page}&sort_by=lastChecked&sort_type=desc&filterLastChecked=30&filterUpTime=90&speed=fast"
+        request_url  = f"https://proxylist.geonode.com/api/proxy-list?limit=500&page={page}&sort_by=lastChecked&sort_type=desc&filterUpTime=90&speed=fast"
         headers      = { "User-Agent" : random.choice(UA_string.UA_string_list) }
         response     = requests.get(request_url, headers = headers)
         ip_list = []
@@ -98,5 +98,5 @@ class geo_node_proxy_scrapper:
 
     
 if __name__ == "__main__":
-    gnproxy = geo_node_proxy_scrapper(500)
+    gnproxy = geo_node_proxy_scrapper(2000)
     gnproxy.get_data_multiprocessing()
